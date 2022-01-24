@@ -1,15 +1,19 @@
-mod webhook;
-mod bot;
+#[macro_use]
+extern crate log;
 
-#[macro_use] extern crate log;
 use std::collections::HashMap;
-use actix_web::{App, HttpResponse, HttpServer, Responder, get};
+use std::sync::RwLock;
+
+use actix_web::{App, get, HttpResponse, HttpServer, Responder};
+use actix_web::web::Data;
 use config::Config;
 use lazy_static::lazy_static;
-use std::sync::RwLock;
-use actix_web::web::Data;
+
 use crate::bot::test_api;
-use crate::webhook::{Webhook, handle};
+use crate::webhook::{handle, Webhook};
+
+mod webhook;
+mod bot;
 
 lazy_static! {
     static ref SETTINGS: RwLock<Config> = RwLock::new(init_config());
@@ -17,7 +21,7 @@ lazy_static! {
 
 #[derive(Debug)]
 pub struct AppState {
-    webhooks: HashMap<String, Webhook>
+    webhooks: HashMap<String, Webhook>,
 }
 
 fn init_config() -> Config {
@@ -50,6 +54,9 @@ async fn main() -> std::io::Result<()> {
 
     if let Some(about) = test_api().await {
         info!("Successfully connected to onebot api: {}, {}, protocol {}", about.app_name, about.app_version, about.protocol);
+    } else {
+        error!("Failed to connect to onebot api");
+        panic!()
     }
 
     let listen = SETTINGS.read().unwrap().get::<String>("common.listen")

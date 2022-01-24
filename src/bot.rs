@@ -1,5 +1,6 @@
-use crate::{SETTINGS, Webhook};
 use serde::{Deserialize, Serialize};
+
+use crate::{SETTINGS, Webhook};
 
 pub enum SimpleMessageTarget {
     Group,
@@ -9,7 +10,7 @@ pub enum SimpleMessageTarget {
 pub struct SimpleMessage {
     pub to: i64,
     pub target: SimpleMessageTarget,
-    pub content: String
+    pub content: String,
 }
 
 impl SimpleMessage {
@@ -23,7 +24,7 @@ impl SimpleMessage {
         SimpleMessage {
             to: webhook.to,
             target,
-            content: "".to_string()
+            content: "".to_string(),
         }
     }
 }
@@ -33,16 +34,17 @@ pub struct SendPrivateMessage {
     pub user_id: i64,
     pub group_id: Option<i64>,
     pub message: String,
-    pub auto_escape: bool
+    pub auto_escape: bool,
 }
 
+#[allow(dead_code)]
 impl SendPrivateMessage {
     pub fn simple(user_id: i64, message: String) -> Self {
         SendPrivateMessage {
             user_id,
             group_id: None,
             message,
-            auto_escape: false
+            auto_escape: false,
         }
     }
 }
@@ -53,7 +55,7 @@ impl Into<SendPrivateMessage> for SimpleMessage {
             user_id: self.to,
             group_id: None,
             message: self.content,
-            auto_escape: false
+            auto_escape: false,
         }
     }
 }
@@ -62,15 +64,16 @@ impl Into<SendPrivateMessage> for SimpleMessage {
 pub struct SendGroupMessage {
     pub group_id: i64,
     pub message: String,
-    pub auto_escape: bool
+    pub auto_escape: bool,
 }
 
+#[allow(dead_code)]
 impl SendGroupMessage {
     pub fn simple(group_id: i64, message: String) -> Self {
         SendGroupMessage {
             group_id,
             message,
-            auto_escape: false
+            auto_escape: false,
         }
     }
 }
@@ -80,7 +83,7 @@ impl Into<SendGroupMessage> for SimpleMessage {
         SendGroupMessage {
             group_id: self.to,
             message: self.content,
-            auto_escape: false
+            auto_escape: false,
         }
     }
 }
@@ -89,26 +92,26 @@ impl Into<SendGroupMessage> for SimpleMessage {
 pub struct SendMessageResponse {
     pub data: SendMessageResponseData,
     pub retcode: i32,
-    pub status: String
+    pub status: String,
 }
 
 #[derive(Deserialize)]
 pub struct SendMessageResponseData {
-    pub message_id: i32
+    pub message_id: i32,
 }
 
 #[derive(Deserialize)]
 pub struct OnebotAboutResponse {
     pub data: OnebotAbout,
     pub retcode: i32,
-    pub status: String
+    pub status: String,
 }
 
 #[derive(Deserialize)]
 pub struct OnebotAbout {
     pub app_name: String,
     pub app_version: String,
-    pub protocol: i32
+    pub protocol: i32,
 }
 
 pub fn get_api(path: &str) -> String {
@@ -122,8 +125,8 @@ pub async fn test_api() -> Option<OnebotAbout> {
     match resp {
         Ok(r) => {
             Some(r.json::<OnebotAboutResponse>().await.unwrap().data)
-        },
-        Err(e) => {
+        }
+        Err(_) => {
             None
         }
     }
@@ -144,11 +147,10 @@ pub async fn send_private_message(data: SendPrivateMessage) -> Option<SendMessag
         .await;
     match resp {
         Ok(r) => {
-            dbg!(&r);
             Some(r.json::<SendMessageResponse>().await.unwrap())
-        },
+        }
         Err(e) => {
-            dbg!(e);
+            warn!("{}", e);
             None
         }
     }
@@ -163,8 +165,9 @@ pub async fn send_group_message(data: SendGroupMessage) -> Option<SendMessageRes
     match resp {
         Ok(r) => {
             Some(r.json::<SendMessageResponse>().await.unwrap())
-        },
+        }
         Err(e) => {
+            warn!("{}", e);
             None
         }
     }
