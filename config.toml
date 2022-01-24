@@ -1,0 +1,20 @@
+[common]
+debug = true
+verbose = false # log level trace
+listen = "0.0.0.0:5800" # webhook listen
+
+[api]
+# onebot-11 compatible api, designed with go-cqhttp
+http = "http://localhost:5700" # no `/` suffix
+
+[webhook.tommy]
+# endpoint /tommy
+target = "group"
+to = 12345678
+secret = '' # optional
+
+[webhook.test]
+# endpoint /test
+target = "private"
+to = 12345678
+secret = '123456' # optional
