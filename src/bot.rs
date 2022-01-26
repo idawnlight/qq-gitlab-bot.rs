@@ -1,9 +1,16 @@
+use std::str::FromStr;
+use std::string::ToString;
+
 use serde::{Deserialize, Serialize};
+use strum_macros::{Display, EnumString};
 
 use crate::{SETTINGS, Webhook};
 
+#[derive(Display, EnumString)]
 pub enum SimpleMessageTarget {
+    #[strum(serialize = "group")]
     Group,
+    #[strum(serialize = "private")]
     Private,
 }
 
@@ -15,11 +22,11 @@ pub struct SimpleMessage {
 
 impl SimpleMessage {
     pub fn init(webhook: &Webhook) -> SimpleMessage {
-        let target = match webhook.target.as_str() {
-            "group" => SimpleMessageTarget::Group,
-            "private" => SimpleMessageTarget::Private,
-            _ => panic!("Unknown target type")
-        };
+        let target = SimpleMessageTarget::from_str(webhook.target.as_str())
+            .unwrap_or_else(|_| {
+                warn!("Invalid target: {}, assuming private", webhook.target);
+                SimpleMessageTarget::Private
+            });
 
         SimpleMessage {
             to: webhook.to,
@@ -133,9 +140,22 @@ pub async fn test_api() -> Option<OnebotAbout> {
 }
 
 pub async fn send_message(data: SimpleMessage) -> Option<SendMessageResponse> {
-    match data.target {
+    let info = format!("{} {}", data.target, data.to);
+
+    let result = match data.target {
         SimpleMessageTarget::Private => send_private_message(data.into()).await,
         SimpleMessageTarget::Group => send_group_message(data.into()).await
+    };
+
+    match result {
+        Some(r) => {
+            info!("Message sent to {} successfully", info);
+            Some(r)
+        }
+        None => {
+            error!("Failed to send message to {}", info);
+            None
+        }
     }
 }
 

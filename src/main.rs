@@ -45,7 +45,7 @@ async fn main() -> std::io::Result<()> {
         false => "qq_gitlab_bot",
         true => match SETTINGS.read().unwrap().get_bool("verbose").unwrap_or(false) {
             false => "info",
-            true => "true",
+            true => "trace",
         },
     };
 

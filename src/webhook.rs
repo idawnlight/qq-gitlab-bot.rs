@@ -88,6 +88,7 @@ pub async fn handle(
                             message.content = format!("New {} on {} by {}", push_hook.ref_, push_hook.project.path_with_namespace, push_hook.user_username);
                         }
 
+                        info!("Received webhook push, sent message \"{}\"", message.content.lines().next().unwrap_or(&message.content));
                         send_message(message).await;
                     }
                     WebHook::Issue(issue_hook) => {
@@ -103,6 +104,8 @@ pub async fn handle(
                         message.content = format!("{} {} issue {}#{}", issue_hook.user.username, keyword, issue_hook.project.path_with_namespace, issue_hook.object_attributes.iid);
                         message.content = format!("{}\n{}\n{}", message.content, issue_hook.object_attributes.title, issue_hook.object_attributes.description.unwrap_or("".to_string()));
                         message.content = format!("{}\n\n{}", message.content, issue_hook.object_attributes.url.unwrap_or("Fail to fetch issue url, a bug of GitLab?".to_string()));
+
+                        info!("Received webhook issue, sent message \"{}\"", message.content.lines().next().unwrap_or(&message.content));
                         send_message(message).await;
                     }
                     WebHook::Note(note_hook) => {
@@ -111,27 +114,26 @@ pub async fn handle(
                                 message.content = format!("{} commented on {}@{}", note_hook.user.username, note_hook.project.path_with_namespace, note_hook.object_attributes.commit_id.unwrap().value()[0..7].to_string());
                                 message.content = format!("{}\n{}", message.content, note_hook.object_attributes.note);
                                 message.content = format!("{}\n\n{}", message.content, note_hook.object_attributes.url);
-                                send_message(message).await;
                             }
                             NoteType::Issue => {
                                 message.content = format!("{} commented on {}#{}", note_hook.user.username, note_hook.project.path_with_namespace, note_hook.issue.unwrap().iid);
                                 message.content = format!("{}\n{}", message.content, note_hook.object_attributes.note);
                                 message.content = format!("{}\n\n{}", message.content, note_hook.object_attributes.url);
-                                send_message(message).await;
                             }
                             NoteType::MergeRequest => {
                                 message.content = format!("{} commented on {}#{}", note_hook.user.username, note_hook.project.path_with_namespace, note_hook.merge_request.unwrap().iid);
                                 message.content = format!("{}\n{}", message.content, note_hook.object_attributes.note);
                                 message.content = format!("{}\n\n{}", message.content, note_hook.object_attributes.url);
-                                send_message(message).await;
                             }
                             NoteType::Snippet => {
                                 message.content = format!("{} commented on snippet {}", note_hook.user.username, note_hook.snippet.unwrap().title);
                                 message.content = format!("{}\n{}", message.content, note_hook.object_attributes.note);
                                 message.content = format!("{}\n\n{}", message.content, note_hook.object_attributes.url);
-                                send_message(message).await;
                             }
                         }
+
+                        info!("Received webhook note, sent message \"{}\"", message.content.lines().next().unwrap_or(&message.content));
+                        send_message(message).await;
                     }
                     WebHook::MergeRequest(mr_hook) => {
                         let keyword = match mr_hook.object_attributes.action {
@@ -148,23 +150,29 @@ pub async fn handle(
                         };
                         message.content = format!("{} {} mr {}#{}", mr_hook.user.username, keyword, mr_hook.project.path_with_namespace, mr_hook.object_attributes.iid);
                         message.content = format!("{}\n\n{}", message.content, mr_hook.object_attributes.url.unwrap_or("Fail to fetch merge request url, a bug of GitLab?".to_string()));
+
+                        info!("Received webhook mr, sent message \"{}\"", message.content.lines().next().unwrap_or(&message.content));
                         send_message(message).await;
                     }
                     WebHook::Build(_) => {
+                        warn!("Received webhook build, ignored");
                         message.content = format!("Unsupported action build");
                         send_message(message).await;
                     }
                     WebHook::Pipeline(_) => {
+                        warn!("Received webhook pipeline, ignored");
                         message.content = format!("Unsupported action pipeline");
                         send_message(message).await;
                     }
                     WebHook::WikiPage(_) => {
+                        warn!("Received webhook wiki page, ignored");
                         message.content = format!("Unsupported action wiki page");
                         send_message(message).await;
                     }
                 }
                 Err(e) => {
                     message.content = e.to_string();
+                    error!("Failed to parse webhook event");
                     send_message(message).await;
                     return HttpResponse::BadRequest().body("unknown event");
                 }
