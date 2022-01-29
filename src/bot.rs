@@ -56,12 +56,12 @@ impl SendPrivateMessage {
     }
 }
 
-impl Into<SendPrivateMessage> for SimpleMessage {
-    fn into(self) -> SendPrivateMessage {
+impl From<SimpleMessage> for SendPrivateMessage {
+    fn from(msg: SimpleMessage) -> Self {
         SendPrivateMessage {
-            user_id: self.to,
+            user_id: msg.to,
             group_id: None,
-            message: self.content,
+            message: msg.content,
             auto_escape: false,
         }
     }
@@ -85,11 +85,11 @@ impl SendGroupMessage {
     }
 }
 
-impl Into<SendGroupMessage> for SimpleMessage {
-    fn into(self) -> SendGroupMessage {
+impl From<SimpleMessage> for SendGroupMessage {
+    fn from(msg: SimpleMessage) -> Self {
         SendGroupMessage {
-            group_id: self.to,
-            message: self.content,
+            group_id: msg.to,
+            message: msg.content,
             auto_escape: false,
         }
     }
