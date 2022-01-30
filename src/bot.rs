@@ -1,5 +1,6 @@
 use std::str::FromStr;
 use std::string::ToString;
+use reqwest::{Error, Response};
 
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
@@ -165,15 +166,7 @@ pub async fn send_private_message(data: SendPrivateMessage) -> Option<SendMessag
         .json(&data)
         .send()
         .await;
-    match resp {
-        Ok(r) => {
-            Some(r.json::<SendMessageResponse>().await.unwrap())
-        }
-        Err(e) => {
-            warn!("{}", e);
-            None
-        }
-    }
+    send_message_result(resp).await
 }
 
 pub async fn send_group_message(data: SendGroupMessage) -> Option<SendMessageResponse> {
@@ -182,7 +175,11 @@ pub async fn send_group_message(data: SendGroupMessage) -> Option<SendMessageRes
         .json(&data)
         .send()
         .await;
-    match resp {
+    send_message_result(resp).await
+}
+
+async fn send_message_result(response: Result<Response, Error>) -> Option<SendMessageResponse> {
+    match response {
         Ok(r) => {
             Some(r.json::<SendMessageResponse>().await.unwrap())
         }
