@@ -3,7 +3,6 @@ use actix_web::web::Bytes;
 use gitlab::NoteType;
 use gitlab::webhooks::{IssueAction, MergeRequestAction, WebHook};
 use serde::Deserialize;
-use serde_json;
 
 use crate::AppState;
 use crate::bot::{send_message, SimpleMessage};
@@ -55,25 +54,25 @@ pub async fn handle(
 
                             for commit in &push_hook.commits {
                                 message.content = format!("{}\n{} {}", message.content,
-                                                          commit.id.value()[0..7].to_string(),
-                                                          commit.message.lines().next().unwrap_or(commit.message.as_str())
+                                                          &commit.id.value()[0..7],
+                                                          commit.message.lines().next().unwrap_or_else(|| commit.message.as_str())
                                 );
 
                                 let mut modification = "".to_string();
-                                if commit.added.as_ref().unwrap().len() > 0 {
+                                if !commit.added.as_ref().unwrap().is_empty() {
                                     modification.push_str(format!("{}+", commit.added.as_ref().unwrap().len()).as_str());
                                 }
-                                if commit.modified.as_ref().unwrap().len() > 0 {
+                                if !commit.modified.as_ref().unwrap().is_empty() {
                                     modification.push_str(format!("{}M", commit.modified.as_ref().unwrap().len()).as_str());
                                 }
-                                if commit.removed.as_ref().unwrap().len() > 0 {
+                                if !commit.removed.as_ref().unwrap().is_empty() {
                                     modification.push_str(format!("{}-", commit.removed.as_ref().unwrap().len()).as_str());
                                 }
 
                                 message.content = format!("{} ({})", message.content, modification.as_str());
                             }
 
-                            if push_hook.commits.len() > 0 {
+                            if !push_hook.commits.is_empty() {
                                 message.content = format!("{}\n\n{}", message.content,
                                                           push_hook.commits.first().unwrap().url
                                 );
@@ -82,7 +81,7 @@ pub async fn handle(
                             let tag = push_hook.ref_[10..].to_string();
                             message.content = format!("New tag {} on {} by {}", tag.as_str(), push_hook.project.path_with_namespace, push_hook.user_username);
                             message.content = format!("{}\n\n{}", message.content,
-                                                      format!("{}{}{}", push_hook.project.web_url, "/-/tags/", tag.as_str())
+                                                      format_args!("{}{}{}", push_hook.project.web_url, "/-/tags/", tag.as_str())
                             );
                         } else {
                             message.content = format!("New {} on {} by {}", push_hook.ref_, push_hook.project.path_with_namespace, push_hook.user_username);
@@ -102,8 +101,8 @@ pub async fn handle(
                             }
                         };
                         message.content = format!("{} {} issue {}#{}", issue_hook.user.username, keyword, issue_hook.project.path_with_namespace, issue_hook.object_attributes.iid);
-                        message.content = format!("{}\n{}\n{}", message.content, issue_hook.object_attributes.title, issue_hook.object_attributes.description.unwrap_or("".to_string()));
-                        message.content = format!("{}\n\n{}", message.content, issue_hook.object_attributes.url.unwrap_or("Fail to fetch issue url, a bug of GitLab?".to_string()));
+                        message.content = format!("{}\n{}\n{}", message.content, issue_hook.object_attributes.title, issue_hook.object_attributes.description.unwrap_or_else(|| "".to_string()));
+                        message.content = format!("{}\n\n{}", message.content, issue_hook.object_attributes.url.unwrap_or_else(|| "Fail to fetch issue url, a bug of GitLab?".to_string()));
 
                         info!("Received webhook issue, sent message \"{}\"", message.content.lines().next().unwrap_or(&message.content));
                         send_message(message).await;
@@ -111,7 +110,7 @@ pub async fn handle(
                     WebHook::Note(note_hook) => {
                         match note_hook.object_attributes.noteable_type {
                             NoteType::Commit => {
-                                message.content = format!("{} commented on {}@{}", note_hook.user.username, note_hook.project.path_with_namespace, note_hook.object_attributes.commit_id.unwrap().value()[0..7].to_string());
+                                message.content = format!("{} commented on {}@{}", note_hook.user.username, note_hook.project.path_with_namespace, &note_hook.object_attributes.commit_id.unwrap().value()[0..7]);
                                 message.content = format!("{}\n{}", message.content, note_hook.object_attributes.note);
                                 message.content = format!("{}\n\n{}", message.content, note_hook.object_attributes.url);
                             }
@@ -149,24 +148,24 @@ pub async fn handle(
                             }
                         };
                         message.content = format!("{} {} mr {}#{}", mr_hook.user.username, keyword, mr_hook.project.path_with_namespace, mr_hook.object_attributes.iid);
-                        message.content = format!("{}\n\n{}", message.content, mr_hook.object_attributes.url.unwrap_or("Fail to fetch merge request url, a bug of GitLab?".to_string()));
+                        message.content = format!("{}\n\n{}", message.content, mr_hook.object_attributes.url.unwrap_or_else(|| "Fail to fetch merge request url, a bug of GitLab?".to_string()));
 
                         info!("Received webhook mr, sent message \"{}\"", message.content.lines().next().unwrap_or(&message.content));
                         send_message(message).await;
                     }
                     WebHook::Build(_) => {
                         warn!("Received webhook build, ignored");
-                        message.content = format!("Unsupported action build");
+                        message.content = "Unsupported action build".to_string();
                         send_message(message).await;
                     }
                     WebHook::Pipeline(_) => {
                         warn!("Received webhook pipeline, ignored");
-                        message.content = format!("Unsupported action pipeline");
+                        message.content = "Unsupported action pipeline".to_string();
                         send_message(message).await;
                     }
                     WebHook::WikiPage(_) => {
                         warn!("Received webhook wiki page, ignored");
-                        message.content = format!("Unsupported action wiki page");
+                        message.content = "Unsupported action wiki page".to_string();
                         send_message(message).await;
                     }
                 }

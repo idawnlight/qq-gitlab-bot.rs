@@ -60,7 +60,7 @@ async fn main() -> std::io::Result<()> {
     }
 
     let listen = SETTINGS.read().unwrap().get::<String>("common.listen")
-        .unwrap_or(String::from("127.0.0.1:5800"));
+        .unwrap_or_else(|_| String::from("127.0.0.1:5800"));
     info!("Start listening on {}", listen);
 
     HttpServer::new(|| {
